@@ -11,6 +11,7 @@ from .convolutional import *
 from .pooling import *
 from .local import *
 from .recurrent import *
+from .cudnn_recurrent import *
 from .normalization import *
 from .embeddings import *
 from .noise import *
@@ -21,6 +22,14 @@ from ..legacy.layers import *
 
 
 def serialize(layer):
+    """Serialize a layer.
+
+    # Arguments
+        layer: a Layer object.
+
+    # Returns
+        dictionary with config.
+    """
     return {'class_name': layer.__class__.__name__,
             'config': layer.get_config()}
 

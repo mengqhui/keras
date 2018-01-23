@@ -39,8 +39,8 @@ def l1_reg(weight_matrix):
     return 0.01 * K.sum(K.abs(weight_matrix))
 
 model.add(Dense(64, input_dim=64,
-                kernel_regularizer=l1_reg)
+                kernel_regularizer=l1_reg))
 ```
 
 Alternatively, you can write your regularizers in an object-oriented way;
-see the [keras/regularizers.py](https://github.com/fchollet/keras/blob/master/keras/regularizers.py) module for examples.
+see the [keras/regularizers.py](https://github.com/keras-team/keras/blob/master/keras/regularizers.py) module for examples.

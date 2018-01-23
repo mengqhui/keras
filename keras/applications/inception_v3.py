@@ -10,9 +10,11 @@ and that the input preprocessing function is also different (same as Xception).
 - [Rethinking the Inception Architecture for Computer Vision](http://arxiv.org/abs/1512.00567)
 
 """
-from __future__ import print_function
 from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
+import os
 import warnings
 
 from ..models import Model
@@ -27,9 +29,9 @@ from ..layers import AveragePooling2D
 from ..layers import GlobalAveragePooling2D
 from ..layers import GlobalMaxPooling2D
 from ..engine.topology import get_source_inputs
-from ..utils.layer_utils import convert_all_kernels_in_model
 from ..utils.data_utils import get_file
 from .. import backend as K
+from . import imagenet_utils
 from .imagenet_utils import decode_predictions
 from .imagenet_utils import _obtain_input_shape
 
@@ -93,7 +95,7 @@ def InceptionV3(include_top=True,
     Optionally loads weights pre-trained
     on ImageNet. Note that when using TensorFlow,
     for best performance you should set
-    `image_data_format="channels_last"` in your Keras config
+    `image_data_format='channels_last'` in your Keras config
     at ~/.keras/keras.json.
     The model and the weights are compatible with both
     TensorFlow and Theano. The data format
@@ -104,8 +106,9 @@ def InceptionV3(include_top=True,
     # Arguments
         include_top: whether to include the fully-connected
             layer at the top of the network.
-        weights: one of `None` (random initialization)
-            or "imagenet" (pre-training on ImageNet).
+        weights: one of `None` (random initialization),
+              'imagenet' (pre-training on ImageNet),
+              or the path to the weights file to be loaded.
         input_tensor: optional Keras tensor (i.e. output of `layers.Input()`)
             to use as image input for the model.
         input_shape: optional shape tuple, only to be specified
@@ -137,10 +140,11 @@ def InceptionV3(include_top=True,
         ValueError: in case of invalid argument for `weights`,
             or invalid input shape.
     """
-    if weights not in {'imagenet', None}:
+    if not (weights in {'imagenet', None} or os.path.exists(weights)):
         raise ValueError('The `weights` argument should be either '
-                         '`None` (random initialization) or `imagenet` '
-                         '(pre-training on ImageNet).')
+                         '`None` (random initialization), `imagenet` '
+                         '(pre-training on ImageNet), '
+                         'or the path to the weights file to be loaded.')
 
     if weights == 'imagenet' and include_top and classes != 1000:
         raise ValueError('If using `weights` as imagenet with `include_top`'
@@ -152,7 +156,8 @@ def InceptionV3(include_top=True,
         default_size=299,
         min_size=139,
         data_format=K.image_data_format(),
-        include_top=include_top)
+        require_flatten=False,
+        weights=weights)
 
     if input_tensor is None:
         img_input = Input(shape=input_shape)
@@ -376,21 +381,27 @@ def InceptionV3(include_top=True,
                 'inception_v3_weights_tf_dim_ordering_tf_kernels.h5',
                 WEIGHTS_PATH,
                 cache_subdir='models',
-                md5_hash='9a0d58056eeedaa3f26cb7ebd46da564')
+                file_hash='9a0d58056eeedaa3f26cb7ebd46da564')
         else:
             weights_path = get_file(
                 'inception_v3_weights_tf_dim_ordering_tf_kernels_notop.h5',
                 WEIGHTS_PATH_NO_TOP,
                 cache_subdir='models',
-                md5_hash='bcbd6486424b2319ff4ef7d526e38f63')
+                file_hash='bcbd6486424b2319ff4ef7d526e38f63')
         model.load_weights(weights_path)
-        if K.backend() == 'theano':
-            convert_all_kernels_in_model(model)
+    elif weights is not None:
+        model.load_weights(weights)
+
     return model
 
 
 def preprocess_input(x):
-    x /= 255.
-    x -= 0.5
-    x *= 2.
-    return x
+    """Preprocesses a numpy array encoding a batch of images.
+
+    # Arguments
+        x: a 4D numpy array consists of RGB values within [0, 255].
+
+    # Returns
+        Preprocessed array.
+    """
+    return imagenet_utils.preprocess_input(x, mode='tf')
